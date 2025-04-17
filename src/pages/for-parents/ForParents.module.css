@@ -1,0 +1,114 @@
+/*Loading*/
+.loading{
+    display: flex;
+    width: 100%;
+    min-height: 60vh;
+    justify-content: center;
+    align-items: center;
+}
+
+.loading p{
+    font-size: 50px;
+    font-family: var(--special-title);
+    color: black;
+}
+
+.page-ready {
+    opacity: 1;
+    transition: opacity 0.3s ease-in;
+}
+
+.page-loading {
+    opacity: 0;
+}
+/**/
+
+
+.top-text{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 2vw;
+    text-align: center;
+}
+
+.top-text p {
+    width: 50vw;
+}
+
+.buddy-speaking-parents-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 10vw;
+    width: clamp(180px, 90vw, 100%);
+    aspect-ratio: 3 / 1.8;
+    padding-top: 8vw;
+}
+
+.buddy-speaking-parents-container p {
+    font-family: var(--buddy-quote-small);
+}
+
+.buddy-speaking-parents-container img {
+    min-width: 140px;
+}
+
+.buddy-speaking-parents-container button {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+@media screen and (min-width: 768px) {
+    .buddy-speaking-parents-container {
+        margin-top: 12vw;
+        min-width: clamp(300px, 90vw, 100%);
+    }
+
+    .buddy-speaking-parents-container img {
+        min-width: 225px;
+    }
+}
+
+@media screen and (min-width: 992px) {
+    .buddy-speaking-parents-container {
+        min-width: clamp(300px, 90vw, 100%);
+        aspect-ratio: 3 / 1;
+        padding: 8vw;
+    }
+}
+
+@media screen and (min-width: 1024px) {
+    .buddy-speaking-parents-container {
+        aspect-ratio: 3 / 0.8;
+        padding: 5vw 7vw;
+    }
+
+    .buddy-speaking-parents-container img {
+        min-width: 280px;
+    }
+
+    .buddy-speaking-parents-container p {
+        font-family: var(--buddy-quote-small);
+        font-size: 20px;
+
+    }
+}
+
+@media screen and (min-width: 1280px) {
+    .buddy-speaking-parents-container {
+        display: flex;
+        justify-content: center;
+        min-width: clamp(300px, 90vw, 100%);
+        aspect-ratio: 3 / 0.8;
+    }
+
+    .buddy-speaking-parents-container img {
+        min-width: 320px;
+    }
+
+    .buddy-speaking-parents-container p {
+        font-size: 25px;
+        margin: 1px;
+    }
+}
+

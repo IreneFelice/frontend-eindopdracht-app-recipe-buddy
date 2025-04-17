@@ -1,0 +1,130 @@
+.outer-nav-container {
+    background: linear-gradient(360deg, #FDCD0D 23.53%, #FCA91B 76.29%, #C88A64 100%);
+    display: flex;
+    flex-direction: column;
+    min-width: 100%;
+    align-items: center;
+    padding-top: 1rem;
+}
+
+.inner-nav-container {
+    display: flex;
+    width: 95vw;
+    max-width: 1400px;
+}
+
+/*********************************** Mobile ******************************************/
+.nav-list-container {
+    display: flex;
+    flex-grow: 1;
+    height: 15vw;
+    width: 100%;
+    align-items: flex-start;
+    justify-content: space-evenly;
+    list-style-type: none;
+}
+
+/*buttons*/
+.active, .default {
+    all: unset;
+    font-family: var(--button-text);
+    font-weight: bold;
+    border-radius: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 20px;
+    font-size: 2.5vw;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25), inset 0 4px 8px #FDF8FF;
+}
+
+.default{
+    color: lightgrey;
+    background: linear-gradient(90deg, #474485 0%, #551C71 100%);
+}
+
+.active {
+    color: white;
+    background: linear-gradient(90deg, #474485 0%, #AB01FB 0.01%, #551C71 98%);
+}
+
+.default:hover {
+    color: white;
+    background: linear-gradient(90deg, #5A4EB8 0%, #6D2A95 100%);
+    box-shadow: 0 4px 10px rgba(255, 255, 255, 0.6),
+    0 0 20px rgba(255, 255, 255, 0.4),
+    inset 0 4px 12px #FFF;
+}
+
+.logout-button {
+    all: unset;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-family: var(--button-text);
+    font-size: 2.5vw;
+    font-weight: bold;
+    color: lightgrey;
+    text-align: center;
+
+    padding: 10px 20px;
+    border-radius: 20px;
+    background: linear-gradient(90deg, #474485 0%, #551C71 100%);
+    box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25),
+    inset 0 4px 8px #FDF8FF;
+    cursor: pointer;
+}
+
+.logout-button:hover {
+    color: white;
+    background: linear-gradient(90deg, #5A4EB8 0%, #6D2A95 100%);
+    box-shadow: 0 4px 10px rgba(255, 255, 255, 0.6),
+    0 0 20px rgba(255, 255, 255, 0.4),
+    inset 0 4px 12px #FFF;
+
+}
+
+/**********************************************************************************************************************/
+
+@media screen and (min-width: 769px) {
+    .inner-nav-container {
+        width: 85vw;
+    }
+
+    .nav-list-container {
+        display: flex;
+        gap: 2vw;
+        height: 5rem;
+        width: 50%;
+        align-items: flex-start;
+        list-style-type: none;
+    }
+
+    .left {
+        justify-content: flex-start;
+    }
+
+    .right {
+        justify-content: flex-end;
+    }
+
+/**** Buttons *******/
+    .active, .default {
+        padding: 0.8rem 2rem;
+        font-size: clamp(1rem, 2vw, 1.6rem);
+        border-radius: 35px;
+        border: transparent;
+    }
+
+    .logout-button {
+        padding: 0.8rem 2rem;
+        font-size: clamp(1rem, 2vw, 1.6rem);
+        border-radius: 35px;
+    }
+
+}
+

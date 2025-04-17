@@ -1,86 +1,177 @@
 import {AuthContext} from '../../context/AuthContext.jsx';
-import PresentSingleRecipe from '../../components/present-single-recipe/PresentSingleRecipe.jsx';
-import './RecipeBook.css';
+import {SavedRecipesContext} from '../../context/SavedRecipesContext.jsx';
+import styles from './RecipeBook.module.css';
 import createQuerySingleRecipe from '../../helpers/createQuerySingleRecipe.js';
 import {useContext, useEffect, useState} from 'react';
 import axios from 'axios';
+import PresentSingleRecipe from '../../components/present-single-recipe/PresentSingleRecipe.jsx';
+import PresentRecipeList from '../../components/present-recipe-list/PresentRecipeList.jsx';
+import bookOpen from '../../assets/old-book-open.png';
+import emptyPage from '../../assets/empty-paper.png';
+import BuddySpeaking from '../../components/buddy-speaking/BuddySpeaking.jsx';
 
 function RecipeBook() {
-    const {auth, userRequest} = useContext(AuthContext);
-    const [savedRecipes, setSavedRecipes] = useState([]);
-    const [singleSelected, setSingleSelected] = useState({});
+    const {auth, isAuth, userRequest} = useContext(AuthContext);
+    const {savedRecipes, saveRecipe} = useContext(SavedRecipesContext);
+    // const [savedRecipes, setSavedRecipes] = useState([]);
+    const [singleSelected, setSingleSelected] = useState('');
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
-    //set state savedRecipes with saved recipes from backend, at mounting stage
+
+    // single or double page presentation
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth <= 768);
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    //Get saved recipes from backend
     useEffect(() => {
         const token = localStorage.getItem('token');
-
         if (token) {
             const getSavedRecipes = async () => {
                 try {
                     const response = await axios.get(userRequest, {
-                            headers: {
-                                "Content-Type": "application/json",
-                                Authorization: `Bearer ${token}`,
-                            }
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${token}`,
                         }
-                    );
+                    });
                     if (response.data.info) {
-                        setSavedRecipes(JSON.parse(response.data.info));
+                        // setSavedRecipes(JSON.parse(response.data.info));
+                        saveRecipe(JSON.parse(response.data.info));
+                        console.log("savedRecipes: ", JSON.parse(response.data.info));
                     }
                 } catch (error) {
-                    console.error("setting saved recipes failed", error);
+                    console.error("Get saved recipes failed", error);
                 }
-            }
+            };
             void getSavedRecipes();
         }
     }, []);
 
-    // set state singleSelected with clicked title from the list
-    function handleTitleClick(uri) {
-        const requestEndPoint = createQuerySingleRecipe(uri);
+    //update savedRecipes
+    async function updateRecipes(updatedList, oldList) {
+        const token = localStorage.getItem('token');
+        if (token) {
+            try {
+                await axios.put(userRequest,
+                    {
+                        'info': JSON.stringify(updatedList),
+                    }, {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${token}`,
+                        }
+                    });
+                sessionStorage.setItem('savedBookRecipes', JSON.stringify(updatedList));
+            } catch (error) {
+                console.error("saveRecipes failed", error);
+                setSavedRecipes(oldList); //if update to backend failed, set state back to previous
+            }
+        }
+    }
 
+    function handleTitleClick(uri, title) {
+        const requestEndPoint = createQuerySingleRecipe(uri);
         const retrieveSingleRecipe = async () => {
             try {
                 const response = await axios.get(requestEndPoint);
-
                 if (response) {
-                    setSingleSelected(response);
+                    setSingleSelected({rec: response.data.hits[0].recipe, title: title});
                 }
             } catch (error) {
-                console.error("retrieving single recipe failed", error);
+                console.error("Get single recipe details failed", error);
             }
-
         };
         void retrieveSingleRecipe();
     }
 
+    function deleteRecipe(uri) {
+        const oldList = savedRecipes;
+        const updatedList = savedRecipes.filter(recipe => recipe.uri !== uri);
+        setSavedRecipes(updatedList);
+        void updateRecipes(updatedList, oldList);
+        console.log("delete clicked. Uri: ", uri, "updated list: ", updatedList);
+    }
+
+    function editRecipe(newLabel, editUri){
+        console.log("properties: label: ", newLabel, ", uri: ", editUri);
+        const oldList = savedRecipes;
+        console.log("old list: ", oldList);
+        const updatedList = savedRecipes.map(recipe =>
+            recipe.uri === editUri ? { ...recipe, title: newLabel } : recipe
+        );
+        console.log("updated list: ", updatedList);
+        setSavedRecipes(updatedList);
+        void updateRecipes(updatedList, oldList);
+    }
 
     return (
-        <>
-            {/*{!isAuth ? (*/}
-            <h1>{auth.user.name}'s Recipe book</h1>
-            <div className="book-outer-container">
-                <section>
+        <div className='inner-page-container'>
+            {isAuth ? (
+                <>
+                    <h2>{auth.user.name}'s Recipe Book</h2>
+                    <div className={styles['book-outer-container']}>
+                        <img
+                            src={isMobile ? emptyPage : bookOpen}
+                            alt={isMobile ? 'Empty page background' : 'Open book background'}
+                        />
 
-                    <ul>
-                        {savedRecipes.map((recipe) => (
-                            <li key={recipe.uri}>
-                                <button type="button" onClick={() => handleTitleClick(recipe.uri)}>
-                                    {recipe.title}
-                                </button>
-                            </li>
-                        ))}
-                    </ul>
-                </section>
-                <section>
-                    {singleSelected ?
-                        <PresentSingleRecipe
-                            singleSelected={singleSelected}
-                            setSingleSelected={setSingleSelected}/>
-                        : <p>No recipe here</p>}
-                </section>
-            </div>
-        </>
+                        <div className={styles['book-inner-container']}>
+                            {/* Mobile: switch to one page */}
+                            {isMobile ? (
+                                singleSelected ? (
+                                    <section className={styles['book-right-page']}>
+                                        <PresentSingleRecipe
+                                            singleRecipe={singleSelected}
+                                            closeRecipe={setSingleSelected}
+                                            editRecipe={editRecipe}
+                                            deleteRecipe={deleteRecipe}
+                                        />
+                                    </section>
+                                ) : (
+                                    <section className={styles['book-left-page']}>
+                                        <PresentRecipeList
+                                            handleTitleClick={handleTitleClick}
+                                            savedRecipes={savedRecipes}
+                                        />
+                                    </section>
+                                )
+                            ) : (
+                                // Desktop: two pages
+                                <>
+                                    <section className={styles['book-left-page']}>
+                                        <PresentRecipeList
+                                            handleTitleClick={handleTitleClick}
+                                            savedRecipes={savedRecipes}
+                                        />
+                                    </section>
+                                    <section className={styles['book-right-page']}>
+                                        {singleSelected ? (
+                                            <PresentSingleRecipe
+                                                singleRecipe={singleSelected}
+                                                closeRecipe={setSingleSelected}
+                                                editRecipe={editRecipe}
+                                                deleteRecipe={deleteRecipe}
+                                            />
+                                        ) : (
+                                            <p>Click on a recipe to view</p>
+                                        )}
+                                    </section>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </>
+            ) : (
+                <div className={styles['buddy-welcoming-container']}>
+                    <BuddySpeaking buddyVersion='tools'/>
+                </div>
+            )}
+        </div>
     );
 }
 
