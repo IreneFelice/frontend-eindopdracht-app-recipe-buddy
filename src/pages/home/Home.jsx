@@ -1,100 +1,70 @@
-// import {useEffect, useState} from "react";
-// import Header from "../../components/header/Header.jsx";
+import {useEffect, useState} from "react";
 // import axios from "axios";
-
+import testResponse from '../../constants/testResponse.json';
+import './Home.css';
+import Header from "../../components/header/Header.jsx";
+import SearchDashboard from "../../components/search-dashboard/SearchDashboard.jsx";
+import PresentedSearchResults from "../../components/present-search-results/PresentedSearchResults.jsx";
 
 function Home() {
-    const exludedFood = "eggplant";
-// const [foundRecipes, setFoundRecipes] = useState({});
+    const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [fullUrl, setFullUrl] = useState('');
+    const [foundRecipes, setFoundRecipes] = useState([]);
 
-//     useEffect (()=>{
-//         async function searchRecipes (){
-//             try {
-//                 const response = await axios.get('https://api.edamam.com/api/recipes/v2', {
-//                     params: {
-//                         type: 'public',
-//                         app_id: '',
-//                         app_key: '',
-//                         ingr: '5-8',
-//                         diet: 'low-fat',
-//                         health: 'alcohol-free',
-//                         excluded: 'eggplant',
-//                         random: 'true',
-//                         field: [
-//                             'uri', 'label', 'image', 'images', 'source', 'url', 'shareAs',
-//                             'yield', 'dietLabels', 'healthLabels', 'ingredients', 'totalTime', 'mealType', 'tags'
-//                         ],
-//                     },
-//                 });
-//                 // setFoundRecipes(response.data);
-//                 console.log(response);
-//             } catch (e) {
-//                 console.error("Niet gelukt", e);
-//             }
-//         }
-//         searchRecipes();
-//     },[]);
-//
-//     return (
-//         <>
-//             <Header/>
-//             <h3>Search for recipes</h3>
-//             {/*{Object.keys(foundRecipes).length > 0 ?*/}
-//             {/*    <p>{foundRecipes.data}</p> : <p>not found</p>*/}
-//             {/*}*/}
-//
-//         </>
-//     )
-// }
 
-    async function fetchRecipes() {
-        const baseUrl = 'https://api.edamam.com/api/recipes/v2';
-        const queryParams = [
-            'type=public',
-            `app_id=${import.meta.env.VITE_API_ID}`,
-            `app_key=${import.meta.env.VITE_API_KEY}`,
-            'ingr=5-8',
-            'diet=low-fat',
-            'health=alcohol-free',
-            `excluded=${exludedFood}`,
-            'random=true',
-            'field=uri',
-            'field=label',
-            'field=image',
-            'field=images',
-            'field=source',
-            'field=url',
-            'field=shareAs',
-            'field=yield',
-            'field=dietLabels',
-            'field=healthLabels',
-            'field=ingredients',
-            'field=totalTime',
-            'field=mealType',
-            'field=tags'
-        ].join('&');
+    //////////// get Data /////////////////////////
+    useEffect(() => {
+        if (!fullUrl) return;
+        const controller = new AbortController();
+        const signal = controller.signal;
 
-        const fullUrl = `${baseUrl}?${queryParams}`;
+        const timeOutLoading = setTimeout(() => {
+            controller.abort();
+            setError("Recipes could not be found, please try again.");
+            setIsLoading(false);
+        }, 5000);
 
-        try {
-            const response = await fetch(fullUrl);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+        const getRecipes = async () => {
+            try {
+                setError('');
+                setIsLoading(true);
+
+                // const response = await axios.get(fullUrl, { signal });
+                // const recipes = response.data.hits || [];
+                const recipes = testResponse.data.hits || [];
+
+                setFoundRecipes(recipes.slice(0, 6));
+                setFullUrl('');
+                clearTimeout(timeOutLoading);
+                setIsLoading(false);
+
+            } catch (e) {
+                console.error("Failed search request:", e);
+                clearTimeout(timeOutLoading);
+                setError("Something went wrong, try again please.");
+                setIsLoading(false);
             }
-            const data = await response.json();
-            console.log(data);
-        } catch (error) {
-            console.error('Error fetching recipes:', error);
-        }
-    }
+        };
 
-    fetchRecipes();
+        getRecipes();
+
+        return () => {
+            controller.abort();
+            clearTimeout(timeOutLoading);
+        };
+    }, [fullUrl]);
 
     return (
         <>
-        <h1>Home</h1>
+            <Header />
+            <h3>Search recipes here</h3>
+            <SearchDashboard passUrl={setFullUrl}/>
+            {error && <p>{error}</p>}
+            {!error && isLoading && <p>Loading...</p>}
+            {foundRecipes?.length > 0 && <PresentedSearchResults results={foundRecipes} resetResults={setFoundRecipes} />}
         </>
-    )
-    }
+    );
+}
 
 export default Home;
