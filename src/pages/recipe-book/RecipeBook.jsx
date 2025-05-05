@@ -1,5 +1,4 @@
 import {AuthContext} from '../../context/AuthContext.jsx';
-import {SavedRecipesContext} from '../../context/SavedRecipesContext.jsx';
 import styles from './RecipeBook.module.css';
 import createQuerySingleRecipe from '../../helpers/createQuerySingleRecipe.js';
 import {useContext, useEffect, useState} from 'react';
@@ -9,17 +8,26 @@ import PresentRecipeList from '../../components/present-recipe-list/PresentRecip
 import bookOpen from '../../assets/old-book-open.png';
 import emptyPage from '../../assets/empty-paper.png';
 import BuddySpeaking from '../../components/buddy-speaking/BuddySpeaking.jsx';
+import {SavedRecipesContext} from '../../context/SavedRecipesContext.jsx';
+import CustomButton from '../../components/buttons/button/CustomButton.jsx';
 
 function RecipeBook() {
-    const {auth, isAuth, userRequest} = useContext(AuthContext);
-    const {savedRecipes, saveRecipe} = useContext(SavedRecipesContext);
-    // const [savedRecipes, setSavedRecipes] = useState([]);
+    const {auth, isAuth} = useContext(AuthContext);
+    const {
+        prepareError,
+        toggleReload,
+        recipeError,
+        setRecipeError,
+        savedBookRecipes
+    } = useContext(SavedRecipesContext);
+    const [loading, setLoading] = useState(false);
     const [singleSelected, setSingleSelected] = useState('');
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
 
-    // single or double page presentation
     useEffect(() => {
+        setRecipeError('');
+        // single or double page presentation
         const handleResize = () => {
             setIsMobile(window.innerWidth <= 768);
         };
@@ -27,93 +35,40 @@ function RecipeBook() {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    //Get saved recipes from backend
-    useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            const getSavedRecipes = async () => {
-                try {
-                    const response = await axios.get(userRequest, {
-                        headers: {
-                            'Content-Type': 'application/json',
-                            Authorization: `Bearer ${token}`,
-                        }
-                    });
-                    if (response.data.info) {
-                        // setSavedRecipes(JSON.parse(response.data.info));
-                        saveRecipe(JSON.parse(response.data.info));
-                        console.log("savedRecipes: ", JSON.parse(response.data.info));
-                    }
-                } catch (error) {
-                    console.error("Get saved recipes failed", error);
-                }
-            };
-            void getSavedRecipes();
-        }
-    }, []);
-
-    //update savedRecipes
-    async function updateRecipes(updatedList, oldList) {
-        const token = localStorage.getItem('token');
-        if (token) {
-            try {
-                await axios.put(userRequest,
-                    {
-                        'info': JSON.stringify(updatedList),
-                    }, {
-                        headers: {
-                            'Content-Type': 'application/json',
-                            Authorization: `Bearer ${token}`,
-                        }
-                    });
-                sessionStorage.setItem('savedBookRecipes', JSON.stringify(updatedList));
-            } catch (error) {
-                console.error("saveRecipes failed", error);
-                setSavedRecipes(oldList); //if update to backend failed, set state back to previous
-            }
-        }
+    function handleReload() {
+        toggleReload((prev) => !prev);
     }
 
     function handleTitleClick(uri, title) {
         const requestEndPoint = createQuerySingleRecipe(uri);
         const retrieveSingleRecipe = async () => {
+            setRecipeError('');
+            setLoading(true);
             try {
                 const response = await axios.get(requestEndPoint);
                 if (response) {
+                    //make custom recipe object with separate 'title' key, for editing option//
                     setSingleSelected({rec: response.data.hits[0].recipe, title: title});
                 }
             } catch (error) {
                 console.error("Get single recipe details failed", error);
+                setRecipeError("The details of your recipe can not be shown right now. Please try again later.")
+            } finally {
+                setLoading(false);
             }
         };
         void retrieveSingleRecipe();
-    }
-
-    function deleteRecipe(uri) {
-        const oldList = savedRecipes;
-        const updatedList = savedRecipes.filter(recipe => recipe.uri !== uri);
-        setSavedRecipes(updatedList);
-        void updateRecipes(updatedList, oldList);
-        console.log("delete clicked. Uri: ", uri, "updated list: ", updatedList);
-    }
-
-    function editRecipe(newLabel, editUri){
-        console.log("properties: label: ", newLabel, ", uri: ", editUri);
-        const oldList = savedRecipes;
-        console.log("old list: ", oldList);
-        const updatedList = savedRecipes.map(recipe =>
-            recipe.uri === editUri ? { ...recipe, title: newLabel } : recipe
-        );
-        console.log("updated list: ", updatedList);
-        setSavedRecipes(updatedList);
-        void updateRecipes(updatedList, oldList);
     }
 
     return (
         <div className='inner-page-container'>
             {isAuth ? (
                 <>
-                    <h2>{auth.user.name}'s Recipe Book</h2>
+                    <h1 className={styles.title} >{auth.user.name}'s Recipe Book</h1>
+                    {isMobile && loading && <p>Loading...</p>}
+                    {isMobile && !loading && (recipeError?.length > 0) &&
+                        <p className={styles['error-message']}>{recipeError}</p>}
+
                     <div className={styles['book-outer-container']}>
                         <img
                             src={isMobile ? emptyPage : bookOpen}
@@ -121,48 +76,66 @@ function RecipeBook() {
                         />
 
                         <div className={styles['book-inner-container']}>
-                            {/* Mobile: switch to one page */}
+
                             {isMobile ? (
+                                // Mobile: switch to one page presentation
                                 singleSelected ? (
                                     <section className={styles['book-right-page']}>
                                         <PresentSingleRecipe
                                             singleRecipe={singleSelected}
                                             closeRecipe={setSingleSelected}
-                                            editRecipe={editRecipe}
-                                            deleteRecipe={deleteRecipe}
                                         />
                                     </section>
-                                ) : (
+
+                                ) : (prepareError && savedBookRecipes?.length === 0 ? (
+                                    <div className={styles['error-message-block']}>
+                                        <p>Sorry,</p>
+                                        <p>your recipe book is not ready right now.</p>
+                                        <p>If you saved recipes before, don't worry!</p>
+                                        <p>They are not gone.</p>
+                                        <p>Please come back later or try to reload.</p>
+                                        <CustomButton text="Reload" color="yellow" onClick={handleReload}/>
+                                    </div>) : (
                                     <section className={styles['book-left-page']}>
                                         <PresentRecipeList
                                             handleTitleClick={handleTitleClick}
-                                            savedRecipes={savedRecipes}
                                         />
-                                    </section>
-                                )
+                                    </section>))
+
                             ) : (
                                 // Desktop: two pages
                                 <>
-                                    <section className={styles['book-left-page']}>
-                                        <PresentRecipeList
+                                    < section className={styles['book-left-page']}>
+                                        < PresentRecipeList
                                             handleTitleClick={handleTitleClick}
-                                            savedRecipes={savedRecipes}
                                         />
                                     </section>
+
                                     <section className={styles['book-right-page']}>
+                                        {loading && <p>Loading...</p>}
                                         {singleSelected ? (
                                             <PresentSingleRecipe
                                                 singleRecipe={singleSelected}
                                                 closeRecipe={setSingleSelected}
-                                                editRecipe={editRecipe}
-                                                deleteRecipe={deleteRecipe}
                                             />
                                         ) : (
-                                            <p>Click on a recipe to view</p>
+                                            prepareError && savedBookRecipes?.length === 0 ? (
+                                                <div className={styles['error-message-block']}>
+                                                    <p>Sorry, your recipe book is not ready right now.</p>
+                                                    <p>If you saved recipes before, don't worry! They are not gone.</p>
+                                                    <p>Please try again later.</p>
+                                                    <CustomButton text="Reload" color="yellow" onClick={handleReload}/>
+                                                </div>
+                                            ) : (
+                                                !recipeError && !loading ? (<p>Click on a recipe to view</p>)
+                                                    : (!loading &&
+                                                        <p className={styles['error-message']}>{recipeError}</p>)
+                                            )
                                         )}
                                     </section>
                                 </>
-                            )}
+                            )
+                            }
                         </div>
                     </div>
                 </>
